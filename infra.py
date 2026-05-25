@@ -2,6 +2,7 @@ from botocore.exceptions import ClientError
 
 from lambda_manager import *
 from s3_manager import *
+from dynamo_manager import *
 
 
 def setup_s3_lambda_trigger(lambda_manager, s3_manager):
@@ -57,8 +58,16 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
-    # Initialize manager
+    # Initialize lambda manager
     lambda_manager = AWSLambdaManager(
+        aws_access_key_id=AWS_ACCESS_KEY,
+        aws_secret_access_key=AWS_SECRET_KEY,
+        aws_session_token=AWS_SESSION_TOKEN,
+        region_name=REGION
+    )
+
+    # Initialize dynamodb manager
+    dynamodb_manager = AWSAcademyDynamoDBManager(
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_KEY,
         aws_session_token=AWS_SESSION_TOKEN,
@@ -70,9 +79,11 @@ if __name__ == "__main__":
             case '1':
                 s3_manager.bucket_status(BUCKET_NAME)
                 lambda_manager.get_status(FUNCTION_NAME)
+                dynamodb_manager.table_status(RECEIPT_TABLE)
             case '2':
                 s3_manager.create_bucket(BUCKET_NAME)
                 lambda_manager.create_function(FUNCTION_NAME)
+                dynamodb_manager.create_table(RECEIPT_TABLE)
             case '3':
                 setup_s3_lambda_trigger(lambda_manager, s3_manager)
             case '4':
@@ -81,6 +92,7 @@ if __name__ == "__main__":
                 s3_manager.empty_bucket(BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)
                 lambda_manager.delete_function(FUNCTION_NAME)
+                dynamodb_manager.delete_table(RECEIPT_TABLE)
             case _:
                 print(f'Huh? ({action})')
 

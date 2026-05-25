@@ -88,18 +88,20 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
-    action = input("1 - create bucket\n2 - status\n3 - empty bucket\n4 - delete bucket\nType exit to exit\nChoose (1 - 4):\n")
+    action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\nx: to exit\tChoose (1 - 4):\n")
 
-    while action != 'exit':
+    while action != 'x':
         match action:
             case '1':
-                s3_manager.create_bucket(BUCKET_NAME)
-            case '2':
                 s3_manager.bucket_status(BUCKET_NAME)
+            case '2':
+                s3_manager.create_bucket(BUCKET_NAME)
             case '3':
                 s3_manager.empty_bucket(BUCKET_NAME)
             case '4':
                 s3_manager.remove_bucket(BUCKET_NAME)
-        action = input("1 - create bucket\n2 - status\n3 - empty bucket\n4 - delete bucket\nType exit to exit\nChoose (1 - 4):\n")
+            case _:
+                print(f'Huh? ({action})')
+        action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\nx: to exit\tChoose (1 - 4):\n")
 
     print('exiting program...')

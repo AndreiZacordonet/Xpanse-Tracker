@@ -46,7 +46,7 @@ class AWSLambdaManager:
         try:
             response = self.lambda_client.create_function(
                 FunctionName=function_name,
-                Runtime='python3.9', # adjust if needed
+                Runtime='python3.12', # adjust if needed
                 Role=role_arn,
                 Handler=f"{file_name.replace('.py', '')}.lambda_handler",
                 Code={'ZipFile': zip_bytes},
@@ -60,6 +60,29 @@ class AWSLambdaManager:
         except ClientError as e:
             print(f"Error creating function: {e}")
 
+            return False
+        
+
+    def update_function(self, function_name, file_name="lambda_function.py"):
+        print(f"Updating Lambda function '{function_name}' code...")
+
+        zip_bytes = create_zip_deployment(file_name)
+        if not zip_bytes:
+            return False
+
+        try:
+            response = self.lambda_client.update_function_code(
+                FunctionName=function_name,
+                ZipFile=zip_bytes
+            )
+            print(f"Successfully updated Lambda function code for: '{function_name}'")
+            return True
+            
+        except self.lambda_client.exceptions.ResourceNotFoundException:
+            print(f"Error: Function '{function_name}' does not exist. Create it first.")
+            return False
+        except ClientError as e:
+            print(f"Error updating function: {e}")
             return False
 
 
@@ -143,7 +166,7 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
-    action = input("1: status\t2: create function\t3: call function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
+    action = input("1: status\t2: create function\t3: update function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
 
     while action != 'x':
         match action:
@@ -151,14 +174,16 @@ if __name__ == "__main__":
                 lambda_manager.get_status(FUNCTION_NAME)
             case '2':
                 lambda_manager.create_function(FUNCTION_NAME, ROLE_ARN, "lambda_function.py")
+            # case '3':
+            #     lambda_manager.invoke_function(FUNCTION_NAME)
             case '3':
-                lambda_manager.invoke_function(FUNCTION_NAME)
+                lambda_manager.update_function(FUNCTION_NAME, "lambda_function.py")
             case '4':
                 lambda_manager.delete_function(FUNCTION_NAME)
             case '5':
                 lambda_manager.get_arn(FUNCTION_NAME)
             case _:
                 print(f'Huh? ({action})')
-        action = input("1: status\t2: create function\t3: call function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
+        action = input("1: status\t2: create function\t3: update function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
 
     print('exitin...')

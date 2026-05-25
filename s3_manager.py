@@ -3,6 +3,7 @@ from botocore.exceptions import ClientError
 from time import time_ns
 
 from credentials import *
+from constants import *
 
 
 class AWSAcademyS3Manager:
@@ -94,8 +95,6 @@ class AWSAcademyS3Manager:
 
 
 if __name__ == "__main__":
-    
-    BUCKET_NAME = "receipt-pic-upload" 
 
     s3_manager = AWSAcademyS3Manager(
         aws_access_key_id=AWS_ACCESS_KEY,
@@ -117,7 +116,7 @@ if __name__ == "__main__":
             case '4':
                 s3_manager.remove_bucket(BUCKET_NAME)
             case '5':
-                s3_manager.upload_file(BUCKET_NAME, file_name='/Users/admin/Documents/CC/project/receips/receipt.jpeg')
+                s3_manager.upload_file(BUCKET_NAME, file_name=FILE_NAME)
             case _:
                 print(f'Huh? ({action})')
         action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\t5: upload file\nx: to exit\tChoose (1 - 4):\n")

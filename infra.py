@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 dynamodb_manager.table_status(RECEIPT_TABLE)
             case '2':
                 s3_manager.create_bucket(BUCKET_NAME)
-                lambda_manager.create_function(FUNCTION_NAME)
+                lambda_manager.create_function(FUNCTION_NAME, ROLE_ARN)
                 dynamodb_manager.create_table(RECEIPT_TABLE)
             case '3':
                 setup_s3_lambda_trigger(lambda_manager, s3_manager)

@@ -7,6 +7,7 @@ print('Loading function')
 BUCKET_NAME = "receipt-pic-upload"
 
 s3 = boto3.client('s3')
+textract = boto3.client('textract')
 
 def lambda_handler(event, context):
     try:
@@ -25,16 +26,32 @@ def lambda_handler(event, context):
         content_type = response['ContentType']
         
         print(f"S3 Upload Accepted: File '{key}' in bucket '{bucket}' (Type: {content_type})")
+        print("Sending to AWS Textract for analysis...")
+
+        textract_response = textract.detect_document_text(
+            Document={
+                'S3Object': {
+                    'Bucket': bucket,
+                    'Name': key
+                }
+            }
+        )
         
-        print("Hello, World! This is printed to CloudWatch Logs.")
-        
+        extracted_lines = []
+        for block in textract_response.get('Blocks', []):
+            if block['BlockType'] == 'LINE':
+                extracted_lines.append(block['Text'])
+                
+        print(f"Successfully extracted {len(extracted_lines)} lines of text.")
+        # print(extracted_lines)
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'message': 'Hello, World! Processed authorized bucket.',
+                'message': 'Successfully processed document with Textract.',
                 'uploaded_file': key,
                 'bucket': bucket,
-                'content_type': content_type
+                'content_type': content_type,
+                'extracted_text': extracted_lines 
             })
         }
         

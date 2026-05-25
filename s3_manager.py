@@ -1,5 +1,6 @@
 import boto3
 from botocore.exceptions import ClientError
+from time import time_ns
 
 from credentials import *
 
@@ -75,6 +76,21 @@ class AWSAcademyS3Manager:
         except ClientError as e:
             print(f"Error deleting bucket: {e}")
             return False
+        
+    def upload_file(self, bucket_name, file_name='/Users/admin/Documents/CC/project/receips/receipt.jpeg'):
+        try:
+            # Local File, Target Bucket, Target Key
+            self.s3_client.upload_file(file_name, bucket_name, str(time_ns()))
+            print(f"Successfully uploaded file '{file_name}' to S3.")
+            return True
+        except FileNotFoundError:
+            print(f"Error: The local file '{file_name}' was not found. Please check the path.")
+
+            return False
+        except ClientError as e:
+            print(f"Error uploading file to S3: {e}")
+
+            return False
 
 
 if __name__ == "__main__":
@@ -88,7 +104,7 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
-    action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\nx: to exit\tChoose (1 - 4):\n")
+    action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\t5: upload file\nx: to exit\tChoose (1 - 4):\n")
 
     while action != 'x':
         match action:
@@ -100,8 +116,10 @@ if __name__ == "__main__":
                 s3_manager.empty_bucket(BUCKET_NAME)
             case '4':
                 s3_manager.remove_bucket(BUCKET_NAME)
+            case '5':
+                s3_manager.upload_file(BUCKET_NAME, file_name='/Users/admin/Documents/CC/project/receips/receipt.jpeg')
             case _:
                 print(f'Huh? ({action})')
-        action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\nx: to exit\tChoose (1 - 4):\n")
+        action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\t5: upload file\nx: to exit\tChoose (1 - 4):\n")
 
     print('exiting program...')

@@ -5,6 +5,7 @@ import zipfile
 from botocore.exceptions import ClientError
 
 from credentials import *
+from constants import *
 
 
 def create_zip_deployment(file_name):
@@ -120,9 +121,19 @@ class AWSLambdaManager:
             return False
 
 
+    def get_arn(self, function_name):
+        try:
+            response = self.lambda_client.get_function(FunctionName=function_name)
+            arn = response['Configuration']['FunctionArn']
+            print(f'arn={arn}')
+            return arn
+        
+        except Exception as e:
+            print(f"Error fetching Lambda ARN: {e}")
+            return None
+
+
 if __name__ == "__main__":
-    
-    FUNCTION_NAME = "my-hello-world-lambda"
 
     # Initialize manager
     lambda_manager = AWSLambdaManager(
@@ -132,7 +143,7 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
-    action = input("1: status\t2: create function\t3: call function\t4: delete function\nx: to exit\nChoose (1 - 4):\n")
+    action = input("1: status\t2: create function\t3: call function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
 
     while action != 'x':
         match action:
@@ -144,8 +155,10 @@ if __name__ == "__main__":
                 lambda_manager.invoke_function(FUNCTION_NAME)
             case '4':
                 lambda_manager.delete_function(FUNCTION_NAME)
+            case '5':
+                lambda_manager.get_arn(FUNCTION_NAME)
             case _:
                 print(f'Huh? ({action})')
-        action = input("1: status\t2: create function\t3: call function\t4: delete function\nx: to exit\nChoose (1 - 4):\n")
+        action = input("1: status\t2: create function\t3: call function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
 
     print('exitin...')

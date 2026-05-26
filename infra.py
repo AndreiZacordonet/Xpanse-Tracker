@@ -112,14 +112,15 @@ if __name__ == "__main__":
                 lambda_manager.create_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'), ROLE_ARN, GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
                 dynamodb_manager.create_table(RECEIPT_TABLE)
             case '3':
-                setup_s3_lambda_trigger(lambda_manager, s3_manager, EXTRACT_TEXT_LAMBDA['name'])
+                setup_s3_lambda_trigger(lambda_manager, s3_manager, EXTRACT_TEXT_LAMBDA.get('name'))
             case '4':
                 presigned_url = lambda_manager.invoke_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
                 trigger_curl(RECEIPT_TEST_FILE, presigned_url)
             case '5':
                 s3_manager.empty_bucket(BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)
-                lambda_manager.delete_function(EXTRACT_TEXT_LAMBDA['name'])
+                lambda_manager.delete_function(EXTRACT_TEXT_LAMBDA.get('name'))
+                lambda_manager.delete_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
                 dynamodb_manager.delete_table(RECEIPT_TABLE)
             case _:
                 print(f'Huh? ({action})')

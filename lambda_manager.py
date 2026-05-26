@@ -118,15 +118,30 @@ class AWSLambdaManager:
             
             # Read the payload stream returned by the function
             payload = response['Payload'].read().decode('utf-8')
+            payload_dict = json.loads(payload)
+            
             print(f"Invocation successful. Result:")
-            print(json.dumps(json.loads(payload), indent=2))
+            print(json.dumps(payload_dict, indent=2))
 
-            return True
+            # extract the URL from the response body
+            if 'body' in payload_dict:
+                body_data = payload_dict['body']
+                if isinstance(body_data, str):
+                    body_data = json.loads(body_data)
+                
+                url = body_data.get('upload_url')
+                if url:
+                    return url
+            
+            # fallback
+            return payload_dict.get('upload_url')
         
         except ClientError as e:
             print(f"Error invoking function: {e}")
-
-            return False
+            return None
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON from Lambda response: {e}")
+            return None
 
 
     def delete_function(self, function_name):
@@ -181,7 +196,8 @@ if __name__ == "__main__":
             case '3':
                 lambda_manager.update_function(FUNCTION_NAME, FUNCTION_FILE)
             case '4':
-                lambda_manager.invoke_function(FUNCTION_NAME)
+                result = lambda_manager.invoke_function(FUNCTION_NAME)
+                print(result, type(result))
             case '5':
                 lambda_manager.delete_function(FUNCTION_NAME)
             case '6':

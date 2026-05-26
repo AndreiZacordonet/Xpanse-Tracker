@@ -1,4 +1,5 @@
 from botocore.exceptions import ClientError
+import subprocess
 
 from lambda_manager import *
 from s3_manager import *
@@ -48,6 +49,30 @@ def setup_s3_lambda_trigger(lambda_manager, s3_manager, function_name):
         return False
     
 
+def trigger_curl(file_name, presigned_url):
+    if presigned_url:
+        
+        print(f"\nTriggering curl to upload '{file_name}'...")
+        
+        # construct the curl command as a list of arguments
+        curl_command = [
+            "curl", 
+            "-X", "PUT", 
+            "-T", file_name, 
+            presigned_url
+        ]
+        
+        try:
+            subprocess.run(curl_command, check=True)
+
+            print("\nFile uploaded successfully via curl")
+            
+        except subprocess.CalledProcessError as e:
+            print(f"\nurl command failed: {e}")
+    else:
+        print("\nSkipping upload: Could not retrieve presigned URL.")
+
+
 if __name__ == "__main__":
 
     # Initilize s3 manager
@@ -78,16 +103,19 @@ if __name__ == "__main__":
         match action:
             case '1':
                 s3_manager.bucket_status(BUCKET_NAME)
-                lambda_manager.get_status(EXTRACT_TEXT_LAMBDA['name'])
+                lambda_manager.get_status(EXTRACT_TEXT_LAMBDA.get('name'))
+                lambda_manager.get_status(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
                 dynamodb_manager.table_status(RECEIPT_TABLE)
             case '2':
                 s3_manager.create_bucket(BUCKET_NAME)
-                lambda_manager.create_function(EXTRACT_TEXT_LAMBDA['name'], ROLE_ARN, EXTRACT_TEXT_LAMBDA['file'])
+                lambda_manager.create_function(EXTRACT_TEXT_LAMBDA.get('name'), ROLE_ARN, EXTRACT_TEXT_LAMBDA.get('file'))
+                lambda_manager.create_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'), ROLE_ARN, GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
                 dynamodb_manager.create_table(RECEIPT_TABLE)
             case '3':
                 setup_s3_lambda_trigger(lambda_manager, s3_manager, EXTRACT_TEXT_LAMBDA['name'])
             case '4':
-                s3_manager.upload_file(BUCKET_NAME, RECEIPT_TEST_FILE)
+                presigned_url = lambda_manager.invoke_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
+                trigger_curl(RECEIPT_TEST_FILE, presigned_url)
             case '5':
                 s3_manager.empty_bucket(BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)

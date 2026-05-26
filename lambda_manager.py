@@ -35,7 +35,7 @@ class AWSLambdaManager:
         )
 
 
-    def create_function(self, function_name, role_arn, file_name="lambda_function.py"):
+    def create_function(self, function_name, role_arn, file_name):
 
         print(f"Creating Lambda function '{function_name}'...")
 
@@ -63,7 +63,7 @@ class AWSLambdaManager:
             return False
         
 
-    def update_function(self, function_name, file_name="lambda_function.py"):
+    def update_function(self, function_name, file_name):
         print(f"Updating Lambda function '{function_name}' code...")
 
         zip_bytes = create_zip_deployment(file_name)
@@ -158,6 +158,9 @@ class AWSLambdaManager:
 
 if __name__ == "__main__":
 
+    FUNCTION_NAME = EXTRACT_TEXT_LAMBDA.get('name')
+    FUNCTION_FILE = EXTRACT_TEXT_LAMBDA.get('file')
+
     # Initialize manager
     lambda_manager = AWSLambdaManager(
         aws_access_key_id=AWS_ACCESS_KEY,
@@ -173,11 +176,11 @@ if __name__ == "__main__":
             case '1':
                 lambda_manager.get_status(FUNCTION_NAME)
             case '2':
-                lambda_manager.create_function(FUNCTION_NAME, ROLE_ARN, "lambda_function.py")
+                lambda_manager.create_function(FUNCTION_NAME, ROLE_ARN, FUNCTION_FILE)
             # case '3':
             #     lambda_manager.invoke_function(FUNCTION_NAME)
             case '3':
-                lambda_manager.update_function(FUNCTION_NAME, "lambda_function.py")
+                lambda_manager.update_function(FUNCTION_NAME, FUNCTION_FILE)
             case '4':
                 lambda_manager.delete_function(FUNCTION_NAME)
             case '5':

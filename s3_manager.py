@@ -116,7 +116,7 @@ if __name__ == "__main__":
             case '4':
                 s3_manager.remove_bucket(BUCKET_NAME)
             case '5':
-                s3_manager.upload_file(BUCKET_NAME, file_name=FILE_NAME)
+                s3_manager.upload_file(BUCKET_NAME, file_name=RECEIPT_TEST_FILE)
             case _:
                 print(f'Huh? ({action})')
         action = input("1: status\t2: create bucket\t3: empty bucket\t4: delete bucket\t5: upload file\nx: to exit\tChoose (1 - 4):\n")

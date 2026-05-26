@@ -5,13 +5,13 @@ from s3_manager import *
 from dynamo_manager import *
 
 
-def setup_s3_lambda_trigger(lambda_manager, s3_manager):
+def setup_s3_lambda_trigger(lambda_manager, s3_manager, function_name):
     print("Linking S3 and Lambda...")
 
     # STEP 1: Give S3 permission to invoke your Lambda function
     try:
         lambda_manager.lambda_client.add_permission(
-            FunctionName=FUNCTION_NAME,
+            FunctionName=function_name,
             StatementId='s3-invoke-permission-1', # Must be unique each time you run this
             Action='lambda:InvokeFunction',
             Principal='s3.amazonaws.com',
@@ -33,7 +33,7 @@ def setup_s3_lambda_trigger(lambda_manager, s3_manager):
             NotificationConfiguration={
                 'LambdaFunctionConfigurations': [
                     {
-                        'LambdaFunctionArn': lambda_manager.get_arn(FUNCTION_NAME),
+                        'LambdaFunctionArn': lambda_manager.get_arn(function_name),
                         'Events': ['s3:ObjectCreated:*'] # Triggers on ANY file upload
                     }
                 ]
@@ -78,20 +78,20 @@ if __name__ == "__main__":
         match action:
             case '1':
                 s3_manager.bucket_status(BUCKET_NAME)
-                lambda_manager.get_status(FUNCTION_NAME)
+                lambda_manager.get_status(EXTRACT_TEXT_LAMBDA['name'])
                 dynamodb_manager.table_status(RECEIPT_TABLE)
             case '2':
                 s3_manager.create_bucket(BUCKET_NAME)
-                lambda_manager.create_function(FUNCTION_NAME, ROLE_ARN)
+                lambda_manager.create_function(EXTRACT_TEXT_LAMBDA['name'], ROLE_ARN, EXTRACT_TEXT_LAMBDA['file'])
                 dynamodb_manager.create_table(RECEIPT_TABLE)
             case '3':
-                setup_s3_lambda_trigger(lambda_manager, s3_manager)
+                setup_s3_lambda_trigger(lambda_manager, s3_manager, EXTRACT_TEXT_LAMBDA['name'])
             case '4':
-                s3_manager.upload_file(BUCKET_NAME, FILE_NAME)
+                s3_manager.upload_file(BUCKET_NAME, RECEIPT_TEST_FILE)
             case '5':
                 s3_manager.empty_bucket(BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)
-                lambda_manager.delete_function(FUNCTION_NAME)
+                lambda_manager.delete_function(EXTRACT_TEXT_LAMBDA['name'])
                 dynamodb_manager.delete_table(RECEIPT_TABLE)
             case _:
                 print(f'Huh? ({action})')

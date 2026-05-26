@@ -158,9 +158,6 @@ class AWSLambdaManager:
 
 if __name__ == "__main__":
 
-    FUNCTION_NAME = EXTRACT_TEXT_LAMBDA.get('name')
-    FUNCTION_FILE = EXTRACT_TEXT_LAMBDA.get('file')
-
     # Initialize manager
     lambda_manager = AWSLambdaManager(
         aws_access_key_id=AWS_ACCESS_KEY,
@@ -169,24 +166,27 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
-    action = input("1: status\t2: create function\t3: update function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
+    while (action := input(f'1: {EXTRACT_TEXT_LAMBDA['name']}\t2: {GENERATE_PRESIGNED_URL_LAMBDA['name']}\nChoose function:\n')) not in ('1', '2'):
+        pass
 
-    while action != 'x':
+    FUNCTION_NAME, FUNCTION_FILE = (EXTRACT_TEXT_LAMBDA.get('name'), EXTRACT_TEXT_LAMBDA.get('file')) if action == '1' \
+                                    else (GENERATE_PRESIGNED_URL_LAMBDA.get('name'), GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
+
+    while (action := input("1: status\t2: create function\t3: update function\t4: trigger function\t5: delete function\t6: get arn\nx: to exit\nChoose (1 - 6):\n")) != 'x':
         match action:
             case '1':
                 lambda_manager.get_status(FUNCTION_NAME)
             case '2':
                 lambda_manager.create_function(FUNCTION_NAME, ROLE_ARN, FUNCTION_FILE)
-            # case '3':
-            #     lambda_manager.invoke_function(FUNCTION_NAME)
             case '3':
                 lambda_manager.update_function(FUNCTION_NAME, FUNCTION_FILE)
             case '4':
-                lambda_manager.delete_function(FUNCTION_NAME)
+                lambda_manager.invoke_function(FUNCTION_NAME)
             case '5':
+                lambda_manager.delete_function(FUNCTION_NAME)
+            case '6':
                 lambda_manager.get_arn(FUNCTION_NAME)
             case _:
                 print(f'Huh? ({action})')
-        action = input("1: status\t2: create function\t3: update function\t4: delete function\t5: get arn\nx: to exit\nChoose (1 - 4):\n")
 
     print('exitin...')

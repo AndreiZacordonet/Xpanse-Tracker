@@ -181,11 +181,15 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
-    while (action := input(f'1: {EXTRACT_TEXT_LAMBDA['name']}\t2: {GENERATE_PRESIGNED_URL_LAMBDA['name']}\nChoose function:\n')) not in ('1', '2'):
+    while (action := input(f'1: {EXTRACT_TEXT_LAMBDA['name']}\t2: {GENERATE_PRESIGNED_URL_LAMBDA['name']}\t3: {GET_RECEIPT_DATA_LAMBDA['name']}\nChoose function:\n')) not in ('1', '2', '3'):
         pass
 
-    FUNCTION_NAME, FUNCTION_FILE = (EXTRACT_TEXT_LAMBDA.get('name'), EXTRACT_TEXT_LAMBDA.get('file')) if action == '1' \
-                                    else (GENERATE_PRESIGNED_URL_LAMBDA.get('name'), GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
+    if action == '1':
+        FUNCTION_NAME, FUNCTION_FILE = (EXTRACT_TEXT_LAMBDA.get('name'), EXTRACT_TEXT_LAMBDA.get('file'))
+    elif action == '2':
+        FUNCTION_NAME, FUNCTION_FILE = (GENERATE_PRESIGNED_URL_LAMBDA.get('name'), GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
+    else:
+        FUNCTION_NAME, FUNCTION_FILE = (GET_RECEIPT_DATA_LAMBDA.get('name'), GET_RECEIPT_DATA_LAMBDA.get('file'))
 
     while (action := input("1: status\t2: create function\t3: update function\t4: trigger function\t5: delete function\t6: get arn\nx: to exit\nChoose (1 - 6):\n")) != 'x':
         match action:

@@ -21,6 +21,11 @@ def lambda_handler(event, context):
         if 'Item' in response:
             return {
                 "statusCode": 200,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET,PUT'
+                },
                 "body": json.dumps(response['Item'], default=str) # default=str handles Decimal types
             }
         

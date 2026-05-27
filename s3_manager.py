@@ -29,6 +29,26 @@ class AWSAcademyS3Manager:
                     Bucket=bucket_name,
                     CreateBucketConfiguration={'LocationConstraint': self.region_name}
                 )
+
+            # add cors
+            cors_configuration = {
+                'CORSRules': [
+                    {
+                        'AllowedHeaders': ['*'],
+                        'AllowedMethods': ['PUT', 'POST', 'GET', 'HEAD'],
+                        'AllowedOrigins': ['*'],
+                        'ExposeHeaders': ['ETag'],
+                        'MaxAgeSeconds': 3000
+                    }
+                ]
+            }
+
+            self.s3_client.put_bucket_cors(
+                Bucket=bucket_name,
+                CORSConfiguration=cors_configuration
+            )
+            print(f"Successfully added CORS configuration to bucket: '{bucket_name}'")
+
             print(f"Successfully created bucket: '{bucket_name}'")
             return True
         except ClientError as e:

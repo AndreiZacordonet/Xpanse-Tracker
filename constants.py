@@ -18,3 +18,6 @@ API_NAME = "ReceiptUploadAPI"
 RECEIPT_TEST_FILE = '/Users/admin/Documents/CC/project/receips/receipt.jpeg'
 
 RECEIPT_TABLE = 'Receipt'
+
+AMPLIFY_APP_NAME = 'Xpanse Tracker'
+S3_BUCKET_NAME = 'index-html-file-bucket'

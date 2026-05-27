@@ -1,5 +1,7 @@
 from botocore.exceptions import ClientError
 import requests
+import re
+import zipfile
 
 from lambda_manager import *
 from s3_manager import *
@@ -89,6 +91,37 @@ def get_data(api_url, id):
     return response.json()
 
 
+def update_api_url(file_path, new_url):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+
+        # this matches 'const API_URL = "' followed by anything, followed by '";'
+        pattern = r'(const\s+API_URL\s*=\s*["\']).*?(["\']\s*;)'
+        
+        # \g<1> keeps the first part (const API_URL = ")
+        # \g<2> keeps the last part (";)
+        replacement = rf'\g<1>{new_url}\g<2>'
+
+        updated_content = re.sub(pattern, replacement, content)
+
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(updated_content)
+            
+        print(f"Success! API_URL updated to: {new_url}")
+
+    except FileNotFoundError:
+        print(f"Error: The file '{file_path}' was not found.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+def zip_file(file, zip_filename='index.html.zip'):
+
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(file)
+
+
 if __name__ == "__main__":
 
     # Initilize s3 manager
@@ -128,6 +161,7 @@ if __name__ == "__main__":
         match action:
             case '1':
                 s3_manager.bucket_status(BUCKET_NAME)
+                s3_manager.bucket_status(S3_BUCKET_NAME)
                 lambda_manager.get_status(EXTRACT_TEXT_LAMBDA.get('name'))
                 lambda_manager.get_status(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
                 lambda_manager.get_status(GET_RECEIPT_DATA_LAMBDA.get('name'))
@@ -135,6 +169,7 @@ if __name__ == "__main__":
                 apigw_manager.api_status()
             case '2':
                 s3_manager.create_bucket(BUCKET_NAME)
+                s3_manager.create_bucket(S3_BUCKET_NAME)
                 lambda_manager.create_function(EXTRACT_TEXT_LAMBDA.get('name'), ROLE_ARN, EXTRACT_TEXT_LAMBDA.get('file'))
                 lambda_manager.create_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'), ROLE_ARN, GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
                 lambda_manager.create_function(GET_RECEIPT_DATA_LAMBDA.get('name'), ROLE_ARN, GET_RECEIPT_DATA_LAMBDA.get('file'))
@@ -144,12 +179,17 @@ if __name__ == "__main__":
                                                 get_receipt_data_lambda_name=GET_RECEIPT_DATA_LAMBDA.get('name'))
             case '3':
                 setup_s3_lambda_trigger(lambda_manager, s3_manager, EXTRACT_TEXT_LAMBDA.get('name'))
+                update_api_url('index.html', apigw_manager.get_url())
+                zip_file('index.html', 'index.html.zip')
+                s3_manager.upload_file(S3_BUCKET_NAME, 'index.html.zip')
             case '4':
                 presigned_url, s3_id = get_presigned_url_and_s3_id(apigw_manager.get_url())
                 upload_file(RECEIPT_TEST_FILE, presigned_url)
                 print(get_data(apigw_manager.get_url(), s3_id))
             case '5':
                 s3_manager.empty_bucket(BUCKET_NAME)
+                s3_manager.remove_bucket(BUCKET_NAME)
+                s3_manager.empty_bucket(S3_BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)
                 lambda_manager.delete_function(EXTRACT_TEXT_LAMBDA.get('name'))
                 lambda_manager.delete_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))

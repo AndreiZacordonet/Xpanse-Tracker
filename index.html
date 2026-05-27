@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt Processor</title>
+</head>
+<body>
+
+    <button onclick="getUploadData()">1. Get Upload URL</button>
+    <br><br>
+
+    <input type="file" id="fileInput">
+    <button onclick="uploadFile()">2. Upload File</button>
+    <br><br>
+
+    <button onclick="getReceiptData()">3. Get Receipt Data</button>
+    <br><br>
+
+    <div id="receiptSummary"></div>
+    <table border="1" id="receiptTable" style="display: none; margin-top: 10px;">
+        <thead>
+            <tr>
+                <th>Product Name</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        const API_URL = "https://214im0yq0a.execute-api.us-east-1.amazonaws.com/prod/";
+
+        // 1. Get receipt data (Presigned URL & S3 Key)
+        async function getUploadData() {
+            try {
+                const response = await fetch(`${API_URL}/`, { method: 'POST' });
+                const data = await response.json();
+                
+                localStorage.setItem('upload_url', data.upload_url);
+                localStorage.setItem('s3_key', data.s3_key);
+                alert("Success: Presigned URL and S3 Key generated and saved to Local Storage.");
+            } catch (error) {
+                console.error("Error fetching upload URL:", error);
+            }
+        }
+
+        // 2. Upload File to S3
+        async function uploadFile() {
+            const uploadUrl = localStorage.getItem('upload_url');
+            const fileInput = document.getElementById('fileInput');
+
+            if (!uploadUrl) return alert("Please get the upload URL first.");
+            if (fileInput.files.length === 0) return alert("Please select a file.");
+
+            try {
+                const file = fileInput.files[0];
+                
+                // Convert the file to a raw ArrayBuffer. 
+                // This stops fetch() from automatically appending a Content-Type header.
+                const arrayBuffer = await file.arrayBuffer();
+
+                const response = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: arrayBuffer 
+                });
+
+                if (response.ok) {
+                    alert("Success: File uploaded to S3.");
+                } else {
+                    const errorText = await response.text();
+                    alert(`Error: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                console.error("Error uploading file:", error);
+            }
+        }
+
+        // 3. Get Receipt Data & Populate Table
+        async function getReceiptData() {
+            const s3Key = localStorage.getItem('s3_key');
+            if (!s3Key) return alert("Please get the upload URL first (Step 1).");
+
+            try {
+                const response = await fetch(`${API_URL}/${s3Key}`);
+                const data = await response.json();
+
+                // Display Summary
+                document.getElementById('receiptSummary').innerHTML = 
+                    `<strong>Store:</strong> ${data.store_name} <br>
+                     <strong>Date:</strong> ${data.date} ${data.time} <br>
+                     <strong>Total Paid:</strong> ${data.total}`;
+
+                // Populate Table
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = ""; // Clear existing rows
+
+                data.products.forEach(product => {
+                    const row = `<tr>
+                        <td>${product.name}</td>
+                        <td>${product.quantity}</td>
+                        <td>${product.price}</td>
+                        <td>${product.discount}</td>
+                        <td>${product.total}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+
+                // Show the table
+                document.getElementById('receiptTable').style.display = 'table';
+            } catch (error) {
+                console.error("Error fetching receipt data:", error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -122,12 +122,14 @@ if __name__ == "__main__":
                 s3_manager.bucket_status(BUCKET_NAME)
                 lambda_manager.get_status(EXTRACT_TEXT_LAMBDA.get('name'))
                 lambda_manager.get_status(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
+                lambda_manager.get_status(GET_RECEIPT_DATA_LAMBDA.get('name'))
                 dynamodb_manager.table_status(RECEIPT_TABLE)
                 apigw_manager.api_status()
             case '2':
                 s3_manager.create_bucket(BUCKET_NAME)
                 lambda_manager.create_function(EXTRACT_TEXT_LAMBDA.get('name'), ROLE_ARN, EXTRACT_TEXT_LAMBDA.get('file'))
                 lambda_manager.create_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'), ROLE_ARN, GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
+                lambda_manager.create_function(GET_RECEIPT_DATA_LAMBDA.get('name'), ROLE_ARN, GET_RECEIPT_DATA_LAMBDA.get('file'))
                 dynamodb_manager.create_table(RECEIPT_TABLE)
                 apigw_manager.create_lambda_api(api_name=API_NAME, lambda_name=GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
             case '3':
@@ -135,12 +137,12 @@ if __name__ == "__main__":
             case '4':
                 presigned_url, s3_id = get_presigned_url_and_s3_id(apigw_manager.get_url())
                 upload_file(RECEIPT_TEST_FILE, presigned_url)
-                # TODO: integrate apigw
             case '5':
                 s3_manager.empty_bucket(BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)
                 lambda_manager.delete_function(EXTRACT_TEXT_LAMBDA.get('name'))
                 lambda_manager.delete_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
+                lambda_manager.delete_function(GET_RECEIPT_DATA_LAMBDA.get('name'))
                 dynamodb_manager.delete_table(RECEIPT_TABLE)
                 apigw_manager.delete_api()
             case _:

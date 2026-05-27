@@ -25,7 +25,7 @@ class AWSAcademyAPIGatewayManager:
             self.api_id = api_id if api_id else ''
 
 
-    def create_lambda_api(self, api_name, lambda_name, stage_name='prod'):
+    def create_lambda_api(self, api_name, generate_url_lambda_name, get_receipt_data_lambda_name, stage_name='prod'):
         print(f"Attempting to create API Gateway '{api_name}'...")
 
         try:
@@ -51,7 +51,7 @@ class AWSAcademyAPIGatewayManager:
                 authorizationType='NONE'
             )
 
-            lambda_arn = self.lambda_manager.get_arn(lambda_name)
+            lambda_arn = self.lambda_manager.get_arn(generate_url_lambda_name)
 
             # integrate the POST Method with the Lambda Function
             integration_uri = f"arn:aws:apigateway:{self.region_name}:lambda:path/2015-03-31/functions/{lambda_arn}/invocations"
@@ -70,7 +70,7 @@ class AWSAcademyAPIGatewayManager:
             
             try:
                 self.lambda_manager.lambda_client.add_permission(
-                    FunctionName=lambda_name,
+                    FunctionName=generate_url_lambda_name,
                     StatementId=f"apigw-invoke-{api_id}",
                     Action="lambda:InvokeFunction",
                     Principal="apigateway.amazonaws.com",
@@ -79,6 +79,53 @@ class AWSAcademyAPIGatewayManager:
             except ClientError as e:
                 if e.response['Error']['Code'] != 'ResourceConflictException':
                     raise e
+                
+            # ================================
+            # create GET Method on the Root
+            id_resource = self.apigw_client.create_resource(
+                restApiId=api_id,
+                parentId=root_id,
+                pathPart='{id}'
+            )
+            id_resource_id = id_resource['id']
+
+            self.apigw_client.put_method(
+                restApiId=api_id,
+                resourceId=id_resource_id,
+                httpMethod='GET',
+                authorizationType='NONE'
+            )
+
+            lambda_arn = self.lambda_manager.get_arn(get_receipt_data_lambda_name)
+
+            # integrate the POST Method with the Lambda Function
+            integration_uri = f"arn:aws:apigateway:{self.region_name}:lambda:path/2015-03-31/functions/{lambda_arn}/invocations"
+            self.apigw_client.put_integration(
+                restApiId=api_id,
+                resourceId=id_resource_id,
+                httpMethod='GET',
+                type='AWS_PROXY',   # NOTE: lambda return dictionary
+                integrationHttpMethod='POST',
+                uri=integration_uri
+            )
+
+            # grant permission
+            account_id = lambda_arn.split(':')[4]
+            source_arn = f"arn:aws:execute-api:{self.region_name}:{account_id}:{api_id}/*/*"
+            
+            try:
+                self.lambda_manager.lambda_client.add_permission(
+                    FunctionName=get_receipt_data_lambda_name,
+                    StatementId=f"apigw-invoke-{api_id}",
+                    Action="lambda:InvokeFunction",
+                    Principal="apigateway.amazonaws.com",
+                    SourceArn=source_arn
+                )
+            except ClientError as e:
+                if e.response['Error']['Code'] != 'ResourceConflictException':
+                    raise e
+
+            # =========================
 
             # deploy API
             self.apigw_client.create_deployment(
@@ -166,8 +213,6 @@ class AWSAcademyAPIGatewayManager:
 
 
 if __name__ == "__main__":
-    
-    LAMBDA_FUNCTION_NAME = GENERATE_PRESIGNED_URL_LAMBDA.get('name')
 
     lambda_manager = AWSLambdaManager(
         aws_access_key_id=AWS_ACCESS_KEY,
@@ -189,7 +234,7 @@ if __name__ == "__main__":
             case '1':
                 apigw_manager.api_status()
             case '2':
-                apigw_manager.create_lambda_api(API_NAME, LAMBDA_FUNCTION_NAME)
+                apigw_manager.create_lambda_api(API_NAME, GENERATE_PRESIGNED_URL_LAMBDA.get('name'), GET_RECEIPT_DATA_LAMBDA.get('name'))
             case '3':
                 apigw_manager.delete_api()
             case _:

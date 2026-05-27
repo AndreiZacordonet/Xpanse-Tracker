@@ -131,7 +131,9 @@ if __name__ == "__main__":
                 lambda_manager.create_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'), ROLE_ARN, GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
                 lambda_manager.create_function(GET_RECEIPT_DATA_LAMBDA.get('name'), ROLE_ARN, GET_RECEIPT_DATA_LAMBDA.get('file'))
                 dynamodb_manager.create_table(RECEIPT_TABLE)
-                apigw_manager.create_lambda_api(api_name=API_NAME, lambda_name=GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
+                apigw_manager.create_lambda_api(api_name=API_NAME, 
+                                                generate_url_lambda_name=GENERATE_PRESIGNED_URL_LAMBDA.get('name'),
+                                                get_receipt_data_lambda_name=GET_RECEIPT_DATA_LAMBDA.get('name'))
             case '3':
                 setup_s3_lambda_trigger(lambda_manager, s3_manager, EXTRACT_TEXT_LAMBDA.get('name'))
             case '4':

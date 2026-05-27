@@ -81,6 +81,14 @@ def get_presigned_url_and_s3_id(api_url) -> tuple[str, str]:
     return data.get("upload_url"), data.get("s3_key")
 
 
+def get_data(api_url, id):
+    response = requests.get(f'{api_url}{id}')
+
+    response.raise_for_status()
+
+    return response.json()
+
+
 if __name__ == "__main__":
 
     # Initilize s3 manager
@@ -139,6 +147,7 @@ if __name__ == "__main__":
             case '4':
                 presigned_url, s3_id = get_presigned_url_and_s3_id(apigw_manager.get_url())
                 upload_file(RECEIPT_TEST_FILE, presigned_url)
+                print(get_data(apigw_manager.get_url(), s3_id))
             case '5':
                 s3_manager.empty_bucket(BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)

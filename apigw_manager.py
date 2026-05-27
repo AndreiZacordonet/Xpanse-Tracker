@@ -8,7 +8,7 @@ from constants import *
 
 class AWSAcademyAPIGatewayManager:
 
-    def __init__(self, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY, aws_session_token=AWS_SESSION_TOKEN, region_name=REGION):
+    def __init__(self, lambda_manager, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY, aws_session_token=AWS_SESSION_TOKEN, region_name=REGION):
         self.region_name = region_name
         self.session = boto3.Session(
             aws_access_key_id=aws_access_key_id,
@@ -18,12 +18,7 @@ class AWSAcademyAPIGatewayManager:
         )
         self.apigw_client = self.session.client('apigateway')
 
-        self.lambda_manager = AWSLambdaManager(
-            aws_access_key_id=AWS_ACCESS_KEY,
-            aws_secret_access_key=AWS_SECRET_KEY,
-            aws_session_token=AWS_SESSION_TOKEN,
-            region_name=REGION
-        )
+        self.lambda_manager = lambda_manager
 
         with open('api_id', 'r') as f:
             api_id = f.readline()
@@ -164,12 +159,25 @@ class AWSAcademyAPIGatewayManager:
             return False
 
 
+    def get_url(self, stage_name='prod') -> None | str:
+        if self.api_status():
+            return f"https://{self.api_id}.execute-api.{self.region_name}.amazonaws.com/{stage_name}/"
+        return None
+
+
 if __name__ == "__main__":
     
-    # TODO: define these in constants.py 
     LAMBDA_FUNCTION_NAME = GENERATE_PRESIGNED_URL_LAMBDA.get('name')
 
+    lambda_manager = AWSLambdaManager(
+        aws_access_key_id=AWS_ACCESS_KEY,
+        aws_secret_access_key=AWS_SECRET_KEY,
+        aws_session_token=AWS_SESSION_TOKEN,
+        region_name=REGION
+    )
+
     apigw_manager = AWSAcademyAPIGatewayManager(
+        lambda_manager,
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_KEY,
         aws_session_token=AWS_SESSION_TOKEN,

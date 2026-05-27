@@ -1,9 +1,10 @@
 from botocore.exceptions import ClientError
-import subprocess
+import requests
 
 from lambda_manager import *
 from s3_manager import *
 from dynamo_manager import *
+from apigw_manager import *
 
 
 def setup_s3_lambda_trigger(lambda_manager, s3_manager, function_name):
@@ -49,28 +50,35 @@ def setup_s3_lambda_trigger(lambda_manager, s3_manager, function_name):
         return False
     
 
-def trigger_curl(file_name, presigned_url):
+def upload_file(file_name, presigned_url):
     if presigned_url:
-        
-        print(f"\nTriggering curl to upload '{file_name}'...")
-        
-        # construct the curl command as a list of arguments
-        curl_command = [
-            "curl", 
-            "-X", "PUT", 
-            "-T", file_name, 
-            presigned_url
-        ]
+        print(f"\nUploading '{file_name}'...")
         
         try:
-            subprocess.run(curl_command, check=True)
-
-            print("\nFile uploaded successfully via curl")
+            with open(file_name, 'rb') as file_data:
+                response = requests.put(presigned_url, data=file_data)
+                
+            response.raise_for_status()
             
-        except subprocess.CalledProcessError as e:
-            print(f"\nurl command failed: {e}")
+            print("\nFile uploaded successfully via requests")
+            
+        except FileNotFoundError:
+            print(f"\nUpload failed: The file '{file_name}' was not found locally.")
+        except requests.exceptions.RequestException as e:
+            print(f"\nUpload failed: {e}")
+            
     else:
         print("\nSkipping upload: Could not retrieve presigned URL.")
+
+
+def get_presigned_url_and_s3_id(api_url) -> tuple[str, str]:
+    response = requests.post(api_url)
+    
+    response.raise_for_status()
+    
+    data = response.json()
+    
+    return data.get("upload_url"), data.get("s3_key")
 
 
 if __name__ == "__main__":
@@ -99,6 +107,15 @@ if __name__ == "__main__":
         region_name=REGION
     )
 
+    # Initialize apigw manager
+    apigw_manager = AWSAcademyAPIGatewayManager(
+        lambda_manager=lambda_manager,
+        aws_access_key_id=AWS_ACCESS_KEY,
+        aws_secret_access_key=AWS_SECRET_KEY,
+        aws_session_token=AWS_SESSION_TOKEN,
+        region_name=REGION
+    )
+
     while (action := input('1: status all\t2: create all\t3: connect all\t4: trigger flow\t5: all down\nx: exit\n')) != 'x':
         match action:
             case '1':
@@ -106,22 +123,26 @@ if __name__ == "__main__":
                 lambda_manager.get_status(EXTRACT_TEXT_LAMBDA.get('name'))
                 lambda_manager.get_status(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
                 dynamodb_manager.table_status(RECEIPT_TABLE)
+                apigw_manager.api_status()
             case '2':
                 s3_manager.create_bucket(BUCKET_NAME)
                 lambda_manager.create_function(EXTRACT_TEXT_LAMBDA.get('name'), ROLE_ARN, EXTRACT_TEXT_LAMBDA.get('file'))
                 lambda_manager.create_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'), ROLE_ARN, GENERATE_PRESIGNED_URL_LAMBDA.get('file'))
                 dynamodb_manager.create_table(RECEIPT_TABLE)
+                apigw_manager.create_lambda_api(api_name=API_NAME, lambda_name=GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
             case '3':
                 setup_s3_lambda_trigger(lambda_manager, s3_manager, EXTRACT_TEXT_LAMBDA.get('name'))
             case '4':
-                presigned_url = lambda_manager.invoke_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
-                trigger_curl(RECEIPT_TEST_FILE, presigned_url)
+                presigned_url, s3_id = get_presigned_url_and_s3_id(apigw_manager.get_url())
+                upload_file(RECEIPT_TEST_FILE, presigned_url)
+                # TODO: integrate apigw
             case '5':
                 s3_manager.empty_bucket(BUCKET_NAME)
                 s3_manager.remove_bucket(BUCKET_NAME)
                 lambda_manager.delete_function(EXTRACT_TEXT_LAMBDA.get('name'))
                 lambda_manager.delete_function(GENERATE_PRESIGNED_URL_LAMBDA.get('name'))
                 dynamodb_manager.delete_table(RECEIPT_TABLE)
+                apigw_manager.delete_api()
             case _:
                 print(f'Huh? ({action})')
 
